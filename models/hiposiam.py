@@ -4,10 +4,6 @@ import torch.nn.functional as F
 from torchvision.models import resnet50
 from torchvision.transforms import functional as TF
 
-def rotate_image(image, angle):
-    """Rotate the image by a given angle."""
-    return TF.rotate(image, angle)
-
 def D(p, z, version='simplified'): # negative cosine similarity
     if version == 'original':
         z = z.detach() # stop gradient
@@ -131,23 +127,23 @@ class HipoSiam(nn.Module):
         xt = x1.detach().clone()
         self.rnn_predictor.init_hidden(device = x1.device)
         for i in range(self.rotate_times):
-            xt = rotate_image(xt, self.angle)
+            xt = TF.rotate(xt, self.angle)
             z2 = f(xt)
             z1 = self.rnn_predictor(z1)
             p1 = h(z1)
             L = D(p1, z2)
             total_loss += L
-        # 反時計回り
-        xt = x1.detach().clone()
-        self.rnn_predictor.init_hidden(device = x1.device)
-        for i in range(self.rotate_times):
-            xt = rotate_image(xt, -self.angle)
-            z2 = f(xt)
-            z1 = self.rnn_predictor(z1)
-            p1 = h(z1)
-            L = D(p1, z2)
-            total_loss += L
-        return {'loss': L}
+        # # 反時計回り
+        # xt = x1.detach().clone()
+        # self.rnn_predictor.init_hidden(device = x1.device)
+        # for i in range(self.rotate_times):
+        #     xt = TF.rotate(xt, -self.angle)
+        #     z2 = f(xt)
+        #     z1 = self.rnn_predictor(z1)
+        #     p1 = h(z1)
+        #     L = D(p1, z2)
+        #     total_loss += L
+        return {'loss': total_loss / self.rotate_times}
 
 if __name__ == "__main__":
     model = HipoSiam()
