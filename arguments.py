@@ -87,7 +87,7 @@ def get_args():
     parser.add_argument('--eval_num_epochs', type=int, default=100)
     parser.add_argument('--eval_batch_size', type=int, default=256)
 
-    parser.add_argument('--knn_monitor', action='store_true', default=True)
+    parser.add_argument('--knn_monitor', action='store_false', default=True)
     parser.add_argument('--knn_interval', type=int, default=1)
     parser.add_argument('--knn_k', type=int, default=200)
 
