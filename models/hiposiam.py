@@ -104,9 +104,9 @@ class prediction_RNN(nn.Module):
         self.hidden = torch.tanh(combined)
         return self.hidden
 
-    def init_hidden(self):
+    def init_hidden(self, device):
         # 隠れ状態の初期化
-        self.hidden = torch.zeros(1, self.hidden_size)
+        self.hidden = torch.zeros(1, self.hidden_size).to(device)
 
 class HipoSiam(nn.Module):
     def __init__(self, backbone=resnet50(), angle=10, rotate_times = 10):
@@ -129,23 +129,23 @@ class HipoSiam(nn.Module):
         z1 = f(x1)
         # 時計回り
         xt = x1.detach().clone()
-        self.rnn_predictor.init_hidden()
+        self.rnn_predictor.init_hidden(device = x1.device)
         for i in range(self.rotate_times):
+            xt = rotate_image(xt, self.angle)
             z2 = f(xt)
             z1 = self.rnn_predictor(z1)
             p1 = h(z1)
             L = D(p1, z2)
-            xt = rotate_image(xt, self.angle)
             total_loss += L
         # 反時計回り
         xt = x1.detach().clone()
-        self.rnn_predictor.init_hidden()
+        self.rnn_predictor.init_hidden(device = x1.device)
         for i in range(self.rotate_times):
+            xt = rotate_image(xt, -self.angle)
             z2 = f(xt)
             z1 = self.rnn_predictor(z1)
             p1 = h(z1)
             L = D(p1, z2)
-            xt = rotate_image(xt, -self.angle)
             total_loss += L
         return {'loss': L}
 
