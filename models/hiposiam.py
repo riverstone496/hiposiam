@@ -61,7 +61,6 @@ class projection_MLP(nn.Module):
             raise Exception
         return x 
 
-
 class prediction_MLP(nn.Module):
     def __init__(self, in_dim=2048, hidden_dim=512, out_dim=2048): # bottleneck structure
         super().__init__()
@@ -90,11 +89,30 @@ class prediction_MLP(nn.Module):
         x = self.layer2(x)
         return x 
 
+class prediction_RNN(nn.Module):
+    def __init__(self, input_size=2048, hidden_size=2048):
+        super(prediction_RNN, self).__init__()
+        self.hidden_size = hidden_size
+        # 入力x_tを隠れ状態h_tに変換するための重み
+        self.i2h = nn.Linear(input_size, hidden_size)
+        # 前の隠れ状態h_{t-1}を現在の隠れ状態h_tに変換するための重み
+        self.h2h = nn.Linear(hidden_size, hidden_size)
+        
+    def forward(self, input_vec):
+        # 新しい隠れ状態の計算
+        combined = self.i2h(input_vec) + self.h2h(self.hidden)
+        self.hidden = torch.tanh(combined)
+        return self.hidden
+
+    def init_hidden(self):
+        # 隠れ状態の初期化
+        self.hidden = torch.zeros(1, self.hidden_size)
+
 class HipoSiam(nn.Module):
-    def __init__(self, backbone=resnet50(), angle=10, angles = 90):
+    def __init__(self, backbone=resnet50(), angle=10, rotate_times = 10):
         super().__init__()
         self.angle = angle
-        self.angles = angles
+        self.rotate_times = rotate_times
         self.backbone = backbone
         self.projector = projection_MLP(backbone.output_dim)
 
@@ -103,26 +121,23 @@ class HipoSiam(nn.Module):
             self.projector
         )
         self.predictor = prediction_MLP()
+        self.rnn_predictor = prediction_RNN()
     
     def forward(self, x1, x2):
-        x2 = x1
-        for i in range(self.angles//self.angle):
-            x2 = rotate_image(x2, self.angle)
-            f, h = self.encoder, self.predictor
-            z1, z2 = f(x1), f(x2)
+        total_loss = 0
+        f, h = self.encoder, self.predictor
+        xt = x1
+        z1 = f(x1)
+        # 時計回り
+        self.rnn_predictor.init_hidden()
+        for i in range(self.rotate_times):
+            z2 = f(xt)
+            z1 = self.rnn_predictor(z1)
             p1 = h(z1)
             L = D(p1, z2)
-
-        x2 = x1
-        for i in range(self.angles//self.angle):
-            x2 = rotate_image(x2, -self.angle)
-            f, h = self.encoder, self.predictor
-            z1, z2 = f(x1), f(x2)
-            p1 = h(z1)
-            L = D(p1, z2)
+            xt = rotate_image(xt, self.angle)
+            total_loss += L
         return {'loss': L}
-
-
 
 if __name__ == "__main__":
     model = HipoSiam()
