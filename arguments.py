@@ -121,7 +121,7 @@ def get_args():
 
     assert not None in [args.log_dir, args.data_dir, args.ckpt_dir, args.name]
 
-    args.log_dir = os.path.join(args.log_dir, 'in-progress_'+datetime.now().strftime('%m%d%H%M%S_')+args.name)
+    args.log_dir = os.path.join(args.log_dir, 'in-progress_'+str(datetime.now()).replace(' ','-')+args.name)
 
     os.makedirs(args.log_dir, exist_ok=False)
     print(f'creating file {args.log_dir}')

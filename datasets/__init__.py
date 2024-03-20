@@ -9,6 +9,7 @@ def get_dataset(dataset, data_dir, transform, train=True, download=False, debug_
     elif dataset == 'stl10':
         if eval_class:
             dataset = torchvision.datasets.STL10(data_dir, split='train' if train else 'test', transform=transform, download=download)
+            dataset.targets = dataset.labels
         else:
             dataset = torchvision.datasets.STL10(data_dir, split='train+unlabeled' if train else 'test', transform=transform, download=download)
     elif dataset == 'cifar10':
