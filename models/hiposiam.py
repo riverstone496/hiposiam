@@ -91,9 +91,10 @@ class prediction_MLP(nn.Module):
         return x 
 
 class HipoSiam(nn.Module):
-    def __init__(self, backbone=resnet50(), angle=10):
+    def __init__(self, backbone=resnet50(), angle=10, angles = 90):
         super().__init__()
         self.angle = angle
+        self.angles = angles
         self.backbone = backbone
         self.projector = projection_MLP(backbone.output_dim)
 
@@ -104,11 +105,21 @@ class HipoSiam(nn.Module):
         self.predictor = prediction_MLP()
     
     def forward(self, x1, x2):
-        x2 = rotate_image(x1, self.angle)
-        f, h = self.encoder, self.predictor
-        z1, z2 = f(x1), f(x2)
-        p1, p2 = h(z1), h(z2)
-        L = D(p1, z2) / 2 + D(p2, z1) / 2
+        x2 = x1
+        for i in range(self.angles//self.angle):
+            x2 = rotate_image(x2, self.angle)
+            f, h = self.encoder, self.predictor
+            z1, z2 = f(x1), f(x2)
+            p1 = h(z1)
+            L = D(p1, z2)
+
+        x2 = x1
+        for i in range(self.angles//self.angle):
+            x2 = rotate_image(x2, -self.angle)
+            f, h = self.encoder, self.predictor
+            z1, z2 = f(x1), f(x2)
+            p1 = h(z1)
+            L = D(p1, z2)
         return {'loss': L}
 
 
