@@ -17,7 +17,8 @@ def main(args):
     train_loader = torch.utils.data.DataLoader(
         dataset=get_dataset( 
             transform=get_aug(train=False, train_classifier=True, **args.aug_kwargs), 
-            train=True, 
+            train=True,
+            eval_class=True, 
             **args.dataset_kwargs
         ),
         batch_size=args.eval_batch_size,

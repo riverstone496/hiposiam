@@ -30,6 +30,7 @@ def main(device, args):
         dataset=get_dataset(
             transform=get_aug(train=False, train_classifier=False, **args.aug_kwargs), 
             train=True,
+            eval_class=True,
             **args.dataset_kwargs),
         shuffle=False,
         batch_size=args.train_batch_size,
