@@ -86,18 +86,23 @@ class prediction_MLP(nn.Module):
         return x 
 
 class prediction_RNN(nn.Module):
-    def __init__(self, input_size=2048, hidden_size=2048):
+    def __init__(self, input_size=2048, hidden_size=2048, nonlin='tanh'):
         super(prediction_RNN, self).__init__()
         self.hidden_size = hidden_size
         # 入力x_tを隠れ状態h_tに変換するための重み
         self.i2h = nn.Linear(input_size, hidden_size)
         # 前の隠れ状態h_{t-1}を現在の隠れ状態h_tに変換するための重み
         self.h2h = nn.Linear(hidden_size, hidden_size)
+
+        if nonlin=='tanh':
+            self.activation = torch.tanh
+        elif nonlin=='relu':
+            self.activation = torch.relu
         
     def forward(self, input_vec):
         # 新しい隠れ状態の計算
         combined = self.i2h(input_vec) + self.h2h(self.hidden)
-        self.hidden = torch.tanh(combined)
+        self.hidden = self.activation(combined)
         return self.hidden
 
     def init_hidden(self, device):
@@ -105,7 +110,7 @@ class prediction_RNN(nn.Module):
         self.hidden = torch.zeros(1, self.hidden_size).to(device)
 
 class HipoSiam(nn.Module):
-    def __init__(self, backbone=resnet50(), angle=10, rotate_times = 10):
+    def __init__(self, backbone=resnet50(), angle=10, rotate_times = 10, rnn_nonlin = 'tanh'):
         super().__init__()
         self.angle = angle
         self.rotate_times = rotate_times
@@ -117,7 +122,7 @@ class HipoSiam(nn.Module):
             self.projector
         )
         self.predictor = prediction_MLP()
-        self.rnn_predictor = prediction_RNN()
+        self.rnn_predictor = prediction_RNN(nonlin=rnn_nonlin)
     
     def forward(self, x1, x2):
         total_loss = 0

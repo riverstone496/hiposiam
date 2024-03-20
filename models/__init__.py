@@ -22,7 +22,7 @@ def get_model(args):
         if args.proj_layers is not None:
             model.projector.set_layers(args.proj_layers)
     elif args.model == 'hiposiam':
-        model =  HipoSiam(get_backbone(args.backbone), angle=args.angle, rotate_times = args.rotate_times)
+        model =  HipoSiam(get_backbone(args.backbone), angle=args.angle, rotate_times = args.rotate_times, rnn_nonlin=args.rnn_nonlin)
         if args.proj_layers is not None:
             model.projector.set_layers(args.proj_layers)
     elif args.model == 'byol':
