@@ -1,6 +1,7 @@
 from .simsiam import SimSiam
 from .byol import BYOL
 from .simclr import SimCLR
+from .hiposiam import HipoSiam
 from torchvision.models import resnet50, resnet18
 import torch
 from .backbones import resnet18_cifar_variant1, resnet18_cifar_variant2
@@ -18,6 +19,10 @@ def get_backbone(backbone, castrate=True):
 def get_model(args):    
     if args.model == 'simsiam':
         model =  SimSiam(get_backbone(args.backbone))
+        if args.proj_layers is not None:
+            model.projector.set_layers(args.proj_layers)
+    elif args.model == 'hiposiam':
+        model =  HipoSiam(get_backbone(args.backbone))
         if args.proj_layers is not None:
             model.projector.set_layers(args.proj_layers)
     elif args.model == 'byol':
