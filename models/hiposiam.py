@@ -126,9 +126,9 @@ class HipoSiam(nn.Module):
     def forward(self, x1, x2):
         total_loss = 0
         f, h = self.encoder, self.predictor
-        xt = x1
         z1 = f(x1)
         # 時計回り
+        xt = x1.detach().clone()
         self.rnn_predictor.init_hidden()
         for i in range(self.rotate_times):
             z2 = f(xt)
@@ -136,6 +136,16 @@ class HipoSiam(nn.Module):
             p1 = h(z1)
             L = D(p1, z2)
             xt = rotate_image(xt, self.angle)
+            total_loss += L
+        # 反時計回り
+        xt = x1.detach().clone()
+        self.rnn_predictor.init_hidden()
+        for i in range(self.rotate_times):
+            z2 = f(xt)
+            z1 = self.rnn_predictor(z1)
+            p1 = h(z1)
+            L = D(p1, z2)
+            xt = rotate_image(xt, -self.angle)
             total_loss += L
         return {'loss': L}
 
