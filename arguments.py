@@ -92,6 +92,8 @@ def get_args():
     parser.add_argument('--knn_k', type=int, default=200)
 
     parser.add_argument('--rnn_nonlin', type=str, default='tanh')
+    parser.add_argument('--remove_rnn', action='store_true', default=False)
+    parser.add_argument('--use_aug', action='store_true', default=False)
 
     parser.add_argument('--angle', type=float, default=10)
     parser.add_argument('--rotate_times', type=int, default=10)

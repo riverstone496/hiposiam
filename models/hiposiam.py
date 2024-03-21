@@ -110,12 +110,14 @@ class prediction_RNN(nn.Module):
         self.hidden = torch.zeros(1, self.hidden_size).to(device)
 
 class HipoSiam(nn.Module):
-    def __init__(self, backbone=resnet50(), angle=10, rotate_times = 10, rnn_nonlin = 'tanh'):
+    def __init__(self, backbone=resnet50(), angle=10, rotate_times = 10, rnn_nonlin = 'tanh', remove_rnn = False, use_aug = False):
         super().__init__()
         self.angle = angle
         self.rotate_times = rotate_times
         self.backbone = backbone
         self.projector = projection_MLP(backbone.output_dim)
+        self.remove_rnn = remove_rnn
+        self.use_aug = use_aug
 
         self.encoder = nn.Sequential( # f encoder
             self.backbone,
@@ -129,12 +131,16 @@ class HipoSiam(nn.Module):
         f, h = self.encoder, self.predictor
         z1 = f(x1)
         # 時計回り
-        xt = x1.detach().clone()
+        if self.use_aug:
+            xt = x2.detach().clone()
+        else:
+            xt = x1.detach().clone()
         self.rnn_predictor.init_hidden(device = x1.device)
         for i in range(self.rotate_times):
             xt = TF.rotate(xt, self.angle)
             z2 = f(xt)
-            z1 = self.rnn_predictor(z1)
+            if not self.remove_rnn:
+                z1 = self.rnn_predictor(z1)
             p1 = h(z1)
             L = D(p1, z2)
             total_loss += L
