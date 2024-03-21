@@ -147,7 +147,7 @@ class prediction_LSTM(nn.Module):
         self.cell = torch.zeros(1, self.hidden_size).to(device)
 
 class HipoSiam(nn.Module):
-    def __init__(self, backbone=resnet50(), angle=10, rotate_times = 10, rnn_nonlin = 'tanh', remove_rnn = False, use_aug = False, predictor_type = 'rnn'):
+    def __init__(self, backbone=resnet50(), angle=10, rotate_times = 10, rnn_nonlin = 'tanh', remove_rnn = False, use_aug = False, rnn_type = 'rnn'):
         super().__init__()
         self.angle = angle
         self.rotate_times = rotate_times
@@ -162,9 +162,9 @@ class HipoSiam(nn.Module):
         )
         self.predictor = prediction_MLP()
 
-        if predictor_type == 'rnn':
+        if rnn_type == 'rnn':
             self.rnn_predictor = prediction_RNN(nonlin=rnn_nonlin)
-        elif predictor_type == 'lstm':
+        elif rnn_type == 'lstm':
             self.rnn_predictor = prediction_LSTM()
     
     def forward(self, x1, x2):
