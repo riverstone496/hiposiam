@@ -109,8 +109,45 @@ class prediction_RNN(nn.Module):
         # 隠れ状態の初期化
         self.hidden = torch.zeros(1, self.hidden_size).to(device)
 
+class prediction_LSTM(nn.Module):
+    def __init__(self, input_size=2048, hidden_size=2048):
+        super(prediction_LSTM, self).__init__()
+        self.hidden_size = hidden_size
+
+        # 入力x_tを各ゲートに変換するための重み
+        self.i2f = nn.Linear(input_size, hidden_size)  # 忘却ゲート
+        self.i2i = nn.Linear(input_size, hidden_size)  # 入力ゲート
+        self.i2o = nn.Linear(input_size, hidden_size)  # 出力ゲート
+        self.i2c = nn.Linear(input_size, hidden_size)  # セル状態候補
+        
+        # 前の隠れ状態h_{t-1}を各ゲートに変換するための重み
+        self.h2f = nn.Linear(hidden_size, hidden_size)
+        self.h2i = nn.Linear(hidden_size, hidden_size)
+        self.h2o = nn.Linear(hidden_size, hidden_size)
+        self.h2c = nn.Linear(hidden_size, hidden_size)
+        
+    def forward(self, input_vec):
+        # ゲートの計算
+        f_t = torch.sigmoid(self.i2f(input_vec) + self.h2f(self.hidden))
+        i_t = torch.sigmoid(self.i2i(input_vec) + self.h2i(self.hidden))
+        o_t = torch.sigmoid(self.i2o(input_vec) + self.h2o(self.hidden))
+        
+        # セル状態の計算
+        c_tilde_t = torch.tanh(self.i2c(input_vec) + self.h2c(self.hidden))
+        self.cell = f_t * self.cell + i_t * c_tilde_t
+        
+        # 隠れ状態の更新
+        self.hidden = o_t * torch.tanh(self.cell)
+        
+        return self.hidden
+
+    def init_hidden(self, device):
+        # 隠れ状態とセル状態の初期化
+        self.hidden = torch.zeros(1, self.hidden_size).to(device)
+        self.cell = torch.zeros(1, self.hidden_size).to(device)
+
 class HipoSiam(nn.Module):
-    def __init__(self, backbone=resnet50(), angle=10, rotate_times = 10, rnn_nonlin = 'tanh', remove_rnn = False, use_aug = False):
+    def __init__(self, backbone=resnet50(), angle=10, rotate_times = 10, rnn_nonlin = 'tanh', remove_rnn = False, use_aug = False, predictor_type = 'rnn'):
         super().__init__()
         self.angle = angle
         self.rotate_times = rotate_times
@@ -124,7 +161,11 @@ class HipoSiam(nn.Module):
             self.projector
         )
         self.predictor = prediction_MLP()
-        self.rnn_predictor = prediction_RNN(nonlin=rnn_nonlin)
+
+        if predictor_type == 'rnn':
+            self.rnn_predictor = prediction_RNN(nonlin=rnn_nonlin)
+        elif predictor_type == 'lstm':
+            self.rnn_predictor = prediction_LSTM()
     
     def forward(self, x1, x2):
         total_loss = 0
@@ -144,16 +185,6 @@ class HipoSiam(nn.Module):
             p1 = h(z1)
             L = D(p1, z2)
             total_loss += L
-        # # 反時計回り
-        # xt = x1.detach().clone()
-        # self.rnn_predictor.init_hidden(device = x1.device)
-        # for i in range(self.rotate_times):
-        #     xt = TF.rotate(xt, -self.angle)
-        #     z2 = f(xt)
-        #     z1 = self.rnn_predictor(z1)
-        #     p1 = h(z1)
-        #     L = D(p1, z2)
-        #     total_loss += L
         return {'loss': total_loss / self.rotate_times}
 
 if __name__ == "__main__":
