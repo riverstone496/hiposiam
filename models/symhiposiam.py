@@ -196,7 +196,7 @@ class SymHipoSiam(nn.Module):
             else:
                 p1, p2 = h(z1), h(z2)
             total_loss += D(p1, zt2) / 2 + D(p2, zt1) / 2
-        return {'loss': total_loss / self.rotate_times}
+        return {'loss': total_loss / (self.rotate_times+1)}
 
 if __name__ == "__main__":
     model = SymHipoSiam()
