@@ -146,7 +146,7 @@ class prediction_LSTM(nn.Module):
         self.hidden = torch.zeros(1, self.hidden_size).to(device)
         self.cell = torch.zeros(1, self.hidden_size).to(device)
 
-class HipoSiam(nn.Module):
+class SymHipoSiam(nn.Module):
     def __init__(self, backbone=resnet50(), angle=10, rotate_times = 10, rnn_nonlin = 'tanh', remove_rnn = False, use_aug = False, rnn_type = 'rnn'):
         super().__init__()
         self.angle = angle
@@ -168,27 +168,37 @@ class HipoSiam(nn.Module):
             self.rnn_predictor = prediction_LSTM()
     
     def forward(self, x1, x2):
-        total_loss = 0
         f, h = self.encoder, self.predictor
-        z1 = f(x1)
         # 時計回り
         if self.use_aug:
-            xt = x2.clone()
+            z1, z2 = f(x1), f(x2)
+            xt1 = x1.clone()
+            xt2 = x2.clone()
         else:
-            xt = x1.clone()
+            z1, z2 = f(x1), f(x1)
+            xt1 = x1.clone()
+            xt2 = x1.clone()
         self.rnn_predictor.init_hidden(device = x1.device)
+
+        # 回転なしで1回目
+        if not self.remove_rnn:
+            p1 = self.rnn_predictor(z1)
+            p2 = self.rnn_predictor(z2)
+        p1, p2 = h(p1), h(p2)
+        total_loss = D(p1, z2) / 2 + D(p2, z1) / 2
+
         for i in range(self.rotate_times):
-            xt = TF.rotate(xt, self.angle)
-            z2 = f(xt)
+            xt1 = TF.rotate(xt1, self.angle)
+            xt2 = TF.rotate(xt2, self.angle)
+            zt1, zt2 = f(xt1), f(xt2)
             if not self.remove_rnn:
-                z1 = self.rnn_predictor(z1)
-            p1 = h(z1)
-            L = D(p1, z2)
-            total_loss += L
+                p1, p2 = self.rnn_predictor(z1), self.rnn_predictor(z2)
+            p1, p2 = h(p1), h(p2)
+            total_loss += D(p1, zt2) / 2 + D(p2, zt1) / 2
         return {'loss': total_loss / self.rotate_times}
 
 if __name__ == "__main__":
-    model = HipoSiam()
+    model = SymHipoSiam()
     x1 = torch.randn((2, 3, 224, 224))
     x2 = torch.randn_like(x1)
 
