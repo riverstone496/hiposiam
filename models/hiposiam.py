@@ -181,7 +181,7 @@ class HipoSiam(nn.Module):
             xt = TF.rotate(xt, self.angle)
             z2 = f(xt)
             if not self.remove_rnn:
-                z1 = h(self.rnn_predictor(z1))
+                p1 = h(self.rnn_predictor(z1))
             else:
                 p1 = h(z1)
             L = D(p1, z2)
