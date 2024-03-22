@@ -11,6 +11,18 @@ from tools import AverageMeter
 from datasets import get_dataset
 from optimizers import get_optimizer, LR_Scheduler
 import wandb
+from torchvision.transforms import functional as TF
+
+def forward_model(model, images, args):
+    output = model(images)
+    if args.eval_by_rotation:
+        for i in range(args.rotate_times-1):
+            images = TF.rotate(images, args.angle)
+            output += model(images)
+        output /= args.rotate_times
+    else:
+        output = model(images)
+    return output
 
 def main(args):
 
@@ -81,7 +93,7 @@ def main(args):
 
             classifier.zero_grad()
             with torch.no_grad():
-                feature = model(images.to(args.device))
+                feature = forward_model(model, images.to(args.device), args)
 
             preds = classifier(feature)
 
@@ -108,7 +120,7 @@ def main(args):
     acc_meter.reset()
     for idx, (images, labels) in enumerate(test_loader):
         with torch.no_grad():
-            feature = model(images.to(args.device))
+            feature = forward_model(model, images.to(args.device), args)
             preds = classifier(feature).argmax(dim=1)
             correct = (preds == labels.to(args.device)).sum().item()
             acc_meter.update(correct/preds.shape[0])

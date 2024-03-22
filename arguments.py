@@ -86,6 +86,7 @@ def get_args():
     parser.add_argument('--eval_final_lr', type=float, default=0)
     parser.add_argument('--eval_num_epochs', type=int, default=100)
     parser.add_argument('--eval_batch_size', type=int, default=256)
+    parser.add_argument('--eval_by_rotation', action='store_true', default=False)
 
     parser.add_argument('--knn_monitor', action='store_false', default=True)
     parser.add_argument('--knn_interval', type=int, default=1)

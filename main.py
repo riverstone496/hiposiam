@@ -131,7 +131,10 @@ if __name__ == "__main__":
                 project=os.environ.get('WANDB_PROJECT', None),
                 )
 
-    main(device=args.device, args=args)
+    if args.eval_from is None:
+        main(device=args.device, args=args)
+    else:
+        linear_eval(args)
 
     completed_log_dir = args.log_dir.replace('in-progress', 'debug' if args.debug else 'completed')
 
