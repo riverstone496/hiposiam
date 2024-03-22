@@ -182,9 +182,9 @@ class SymHipoSiam(nn.Module):
 
         # 回転なしで1回目
         if not self.remove_rnn:
-            p1 = self.rnn_predictor(z1)
-            p2 = self.rnn_predictor(z2)
-        p1, p2 = h(p1), h(p2)
+            p1, p2 = h(self.rnn_predictor(z1)),  h(self.rnn_predictor(z2))
+        else:
+            p1, p2 = h(z1), h(z2)
         total_loss = D(p1, z2) / 2 + D(p2, z1) / 2
 
         for i in range(self.rotate_times):
@@ -192,8 +192,9 @@ class SymHipoSiam(nn.Module):
             xt2 = TF.rotate(xt2, self.angle)
             zt1, zt2 = f(xt1), f(xt2)
             if not self.remove_rnn:
-                p1, p2 = self.rnn_predictor(z1), self.rnn_predictor(z2)
-            p1, p2 = h(p1), h(p2)
+                p1, p2 = h(self.rnn_predictor(z1)),  h(self.rnn_predictor(z2))
+            else:
+                p1, p2 = h(z1), h(z2)
             total_loss += D(p1, zt2) / 2 + D(p2, zt1) / 2
         return {'loss': total_loss / self.rotate_times}
 
