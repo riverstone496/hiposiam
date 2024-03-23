@@ -121,9 +121,10 @@ class prediction_RNN(nn.Module):
         self.hidden = torch.zeros(1, self.hidden_size).to(device)
 
 class prediction_LSTM(nn.Module):
-    def __init__(self, input_size=2048, hidden_size=2048):
+    def __init__(self, input_size=2048, hidden_size=512, out_dim=2048, norm_type = None):
         super(prediction_LSTM, self).__init__()
         self.hidden_size = hidden_size
+        self.norm_type = norm_type
 
         # 入力x_tを各ゲートに変換するための重み
         self.i2f = nn.Linear(input_size, hidden_size)  # 忘却ゲート
@@ -136,6 +137,13 @@ class prediction_LSTM(nn.Module):
         self.h2i = nn.Linear(hidden_size, hidden_size)
         self.h2o = nn.Linear(hidden_size, hidden_size)
         self.h2c = nn.Linear(hidden_size, hidden_size)
+
+        self.output_layer = nn.Linear(hidden_size, out_dim)
+
+        # LayerNormの設定
+        if self.norm_type == 'layernorm':
+            self.ln_hidden = nn.LayerNorm(hidden_size)
+            self.ln_cell = nn.LayerNorm(hidden_size)
         
     def forward(self, input_vec):
         # ゲートの計算
@@ -149,8 +157,11 @@ class prediction_LSTM(nn.Module):
         
         # 隠れ状態の更新
         self.hidden = o_t * torch.tanh(self.cell)
-        
-        return self.hidden
+        if self.norm_type is not None:
+            self.hidden = self.ln_hidden(self.hidden)
+            self.cell = self.ln_cell(self.cell)
+        x = self.output_layer(self.hidden)
+        return x
 
     def init_hidden(self, device):
         # 隠れ状態とセル状態の初期化
@@ -179,7 +190,7 @@ class HippoSiam(nn.Module):
         elif rnn_type == 'rnn':
             self.predictor = prediction_RNN(nonlin=rnn_nonlin, norm_type = rnn_norm)
         elif rnn_type == 'lstm':
-            self.predictor = prediction_LSTM()
+            self.predictor = prediction_LSTM(norm_type = rnn_norm)
     
     def forward(self, x1, x2):
         f, h = self.encoder, self.predictor
