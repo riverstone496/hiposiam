@@ -239,7 +239,7 @@ class HippoSiam(nn.Module):
         if self.sym_loss:
             total_loss = D(p1, z2) / 2 + D(p2, z1) / 2
         else:
-            total_loss = D(p1, z2) / 2 
+            total_loss = D(p1, z2) 
 
         for i in range(self.rotate_times):
             if self.random_rotation == 'time_random':
@@ -251,7 +251,7 @@ class HippoSiam(nn.Module):
             if self.sym_loss:
                 total_loss += D(p1, zt2) / 2 + D(p2, zt1) / 2
             else:
-                total_loss += D(p1, zt2) / 2
+                total_loss += D(p1, zt2) 
         return {'loss': total_loss / (self.rotate_times+1)}
 
 if __name__ == "__main__":
