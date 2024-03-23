@@ -206,6 +206,10 @@ class HippoSiam(nn.Module):
             self.predictor = prediction_MLP()
         elif rnn_type == 'rnn':
             self.predictor = prediction_RNN(nonlin=rnn_nonlin, norm_type = rnn_norm, n_layers=rnn_layers)
+        elif rnn_type == 'rnn_2':
+            self.predictor = prediction_RNN(nonlin=rnn_nonlin, norm_type = rnn_norm, n_layers=2)
+        elif rnn_type == 'rnn_3':
+            self.predictor = prediction_RNN(nonlin=rnn_nonlin, norm_type = rnn_norm, n_layers=3)
         elif rnn_type == 'lstm':
             self.predictor = prediction_LSTM(norm_type = rnn_norm, n_layers=rnn_layers)
     
