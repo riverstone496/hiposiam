@@ -87,22 +87,26 @@ class prediction_MLP(nn.Module):
         return x 
 
 class prediction_RNN(nn.Module):
-    def __init__(self, input_size=2048, hidden_size=2048, nonlin='tanh'):
+    def __init__(self, input_size=2048, hidden_size=2048, nonlin='tanh', norm_type=None):
         super(prediction_RNN, self).__init__()
         self.hidden_size = hidden_size
+        self.norm_type = norm_type
         # 入力x_tを隠れ状態h_tに変換するための重み
         self.i2h = nn.Linear(input_size, hidden_size)
         # 前の隠れ状態h_{t-1}を現在の隠れ状態h_tに変換するための重み
         self.h2h = nn.Linear(hidden_size, hidden_size)
-
-        if nonlin=='tanh':
+        if nonlin == 'tanh':
             self.activation = torch.tanh
-        elif nonlin=='relu':
+        elif nonlin == 'relu':
             self.activation = torch.relu
+        if norm_type == 'layernorm':
+            self.normalization = nn.LayerNorm(hidden_size)
         
     def forward(self, input_vec):
         # 新しい隠れ状態の計算
         combined = self.i2h(input_vec) + self.h2h(self.hidden)
+        if self.norm_type is not None:
+            combined = self.normalization(combined)
         self.hidden = self.activation(combined)
         return self.hidden
 
@@ -148,7 +152,7 @@ class prediction_LSTM(nn.Module):
         self.cell = torch.zeros(1, self.hidden_size).to(device)
 
 class SymHipoSiam(nn.Module):
-    def __init__(self, backbone=resnet50(), angle=10, rotate_times = 10, rnn_nonlin = 'tanh', remove_rnn = False, use_aug = False, rnn_type = 'rnn', random_rotation = False):
+    def __init__(self, backbone=resnet50(), angle=10, rotate_times = 10, rnn_nonlin = 'tanh', remove_rnn = False, use_aug = False, rnn_type = 'rnn', rnn_norm = None, random_rotation = False):
         super().__init__()
         self.angle = angle
         self.rotate_times = rotate_times
@@ -165,7 +169,7 @@ class SymHipoSiam(nn.Module):
         self.predictor = prediction_MLP()
 
         if rnn_type == 'rnn':
-            self.rnn_predictor = prediction_RNN(nonlin=rnn_nonlin)
+            self.rnn_predictor = prediction_RNN(nonlin=rnn_nonlin, norm_type = rnn_norm)
         elif rnn_type == 'lstm':
             self.rnn_predictor = prediction_LSTM()
     

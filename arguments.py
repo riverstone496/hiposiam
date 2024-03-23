@@ -94,6 +94,8 @@ def get_args():
 
     parser.add_argument('--rnn_nonlin', type=str, default='tanh')
     parser.add_argument('--rnn_type', type=str, default='rnn')
+    parser.add_argument('--rnn_norm', type=str, default=None)
+    
     parser.add_argument('--remove_rnn', action='store_true', default=False)
     parser.add_argument('--use_aug', action='store_true', default=False)
 
@@ -114,7 +116,8 @@ def get_args():
     # with open(args.config_file, 'r') as f:
     #     for key, value in Namespace(yaml.load(f, Loader=yaml.FullLoader)).__dict__.items():
     #         vars(args)[key] = value
-
+    if args.rnn_norm == 'None':
+        args.rnn_norm = None
     if args.debug:
         args.train_batch_size = 2
         args.train_num_epochs = 1
