@@ -199,8 +199,8 @@ class HippoSiam(nn.Module):
             xt1 = x1.clone()
             xt2 = x1.clone()
 
-        if self.rnn_type != 'None':
-            self.rnn_predictor.init_hidden(device = x1.device)
+        if self.rnn_type != None:
+            self.predictor.init_hidden(device = x1.device)
 
         # 回転なしで1回目
         p1, p2 = h(z1), h(z2)
