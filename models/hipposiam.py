@@ -87,7 +87,7 @@ class prediction_MLP(nn.Module):
         return x 
 
 class prediction_RNN(nn.Module):
-    def __init__(self, input_size=2048, hidden_size=512, out_dim=2048, nonlin='tanh', norm_type=None):
+    def __init__(self, input_size=2048, hidden_size=512, out_dim=2048, nonlin='tanh', norm_type=None, n_layers = 2):
         super(prediction_RNN, self).__init__()
         self.hidden_size = hidden_size
         self.norm_type = norm_type
@@ -95,7 +95,16 @@ class prediction_RNN(nn.Module):
         self.i2h = nn.Linear(input_size, hidden_size)
         # 前の隠れ状態h_{t-1}を現在の隠れ状態h_tに変換するための重み
         self.h2h = nn.Linear(hidden_size, hidden_size)
-        self.output_layer = nn.Linear(hidden_size, out_dim)
+
+        if n_layers == 2:
+            self.output_layer = nn.Linear(hidden_size, out_dim)
+        elif n_layers == 3:
+            self.output_layer = nn.Sequential(
+                nn.Linear(hidden_size, hidden_size),
+                nn.BatchNorm1d(hidden_size),
+                nn.ReLU(inplace=True),
+                nn.Linear(hidden_size, out_dim),
+            )
 
         # 活性化関数の選択
         if nonlin == 'tanh':
@@ -121,7 +130,7 @@ class prediction_RNN(nn.Module):
         self.hidden = torch.zeros(1, self.hidden_size).to(device)
 
 class prediction_LSTM(nn.Module):
-    def __init__(self, input_size=2048, hidden_size=512, out_dim=2048, norm_type = None):
+    def __init__(self, input_size=2048, hidden_size=512, out_dim=2048, norm_type = None, n_layers = 2):
         super(prediction_LSTM, self).__init__()
         self.hidden_size = hidden_size
         self.norm_type = norm_type
@@ -138,7 +147,15 @@ class prediction_LSTM(nn.Module):
         self.h2o = nn.Linear(hidden_size, hidden_size)
         self.h2c = nn.Linear(hidden_size, hidden_size)
 
-        self.output_layer = nn.Linear(hidden_size, out_dim)
+        if n_layers == 2:
+            self.output_layer = nn.Linear(hidden_size, out_dim)
+        elif n_layers == 3:
+            self.output_layer = nn.Sequential(
+                nn.Linear(hidden_size, hidden_size),
+                nn.BatchNorm1d(hidden_size),
+                nn.ReLU(inplace=True),
+                nn.Linear(hidden_size, out_dim),
+            )
 
         # LayerNormの設定
         if self.norm_type == 'layernorm':
@@ -169,7 +186,7 @@ class prediction_LSTM(nn.Module):
         self.cell = torch.zeros(1, self.hidden_size).to(device)
 
 class HippoSiam(nn.Module):
-    def __init__(self, backbone=resnet50(), angle=10, rotate_times = 10, rnn_nonlin = 'tanh', use_aug = False, rnn_type = 'rnn', rnn_norm = None, random_rotation = False, asym_loss = False):
+    def __init__(self, backbone=resnet50(), angle=10, rotate_times = 10, rnn_nonlin = 'tanh', use_aug = False, rnn_type = 'rnn', rnn_norm = None, random_rotation = False, asym_loss = False, rnn_layers = 2):
         super().__init__()
         self.angle = angle
         self.rotate_times = rotate_times
@@ -188,9 +205,9 @@ class HippoSiam(nn.Module):
         if rnn_type == 'None':
             self.predictor = prediction_MLP()
         elif rnn_type == 'rnn':
-            self.predictor = prediction_RNN(nonlin=rnn_nonlin, norm_type = rnn_norm)
+            self.predictor = prediction_RNN(nonlin=rnn_nonlin, norm_type = rnn_norm, n_layers=rnn_layers)
         elif rnn_type == 'lstm':
-            self.predictor = prediction_LSTM(norm_type = rnn_norm)
+            self.predictor = prediction_LSTM(norm_type = rnn_norm, n_layers=rnn_layers)
     
     def forward(self, x1, x2):
         f, h = self.encoder, self.predictor
