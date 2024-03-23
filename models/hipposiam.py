@@ -186,7 +186,7 @@ class prediction_LSTM(nn.Module):
         self.cell = torch.zeros(1, self.hidden_size).to(device)
 
 class HippoSiam(nn.Module):
-    def __init__(self, backbone=resnet50(), angle=10, rotate_times = 10, rnn_nonlin = 'tanh', use_aug = False, rnn_type = 'rnn', rnn_norm = None, random_rotation = False, asym_loss = False, rnn_layers = 2):
+    def __init__(self, backbone=resnet50(), angle=10, rotate_times = 10, rnn_nonlin = 'tanh', use_aug = False, rnn_type = 'rnn', rnn_norm = None, random_rotation = None, asym_loss = False, rnn_layers = 2):
         super().__init__()
         self.angle = angle
         self.rotate_times = rotate_times
@@ -213,7 +213,7 @@ class HippoSiam(nn.Module):
         f, h = self.encoder, self.predictor
         
         # 角度の決定
-        if self.random_rotation:
+        if self.random_rotation == 'step_random':
             rotate_angle = random.randint(-self.angle, self.angle)
         else:
             rotate_angle = self.angle
@@ -238,6 +238,8 @@ class HippoSiam(nn.Module):
             total_loss = D(p1, z2) / 2 
 
         for i in range(self.rotate_times):
+            if self.random_rotation == 'time_random':
+                rotate_angle = random.randint(-self.angle, self.angle)
             xt1 = TF.rotate(xt1, rotate_angle)
             xt2 = TF.rotate(xt2, rotate_angle)
             zt1, zt2 = f(xt1), f(xt2)

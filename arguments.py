@@ -100,7 +100,7 @@ def get_args():
 
     parser.add_argument('--angle', type=float, default=10)
     parser.add_argument('--rotate_times', type=int, default=10)
-    parser.add_argument('--random_rotation', action='store_true', default=False)
+    parser.add_argument('--random_rotation', type=str, default=None)
 
     parser.add_argument('--seed', type=int, default=None)
 
@@ -119,6 +119,9 @@ def get_args():
         args.rnn_norm = None
     if args.rnn_type == 'None':
         args.rnn_type = None
+    if args.random_rotation == 'None':
+        args.random_rotation = None
+    
     if args.debug:
         args.train_batch_size = 2
         args.train_num_epochs = 1
