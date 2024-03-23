@@ -118,7 +118,7 @@ def get_args():
     if args.rnn_norm == 'None':
         args.rnn_norm = None
     if args.rnn_type == 'None':
-        args.rnn_norm = None
+        args.rnn_type = None
     if args.debug:
         args.train_batch_size = 2
         args.train_num_epochs = 1

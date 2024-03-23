@@ -202,7 +202,7 @@ class HippoSiam(nn.Module):
             self.projector
         )
 
-        if rnn_type == 'None':
+        if rnn_type == None:
             self.predictor = prediction_MLP()
         elif rnn_type == 'rnn':
             self.predictor = prediction_RNN(nonlin=rnn_nonlin, norm_type = rnn_norm, n_layers=rnn_layers)
