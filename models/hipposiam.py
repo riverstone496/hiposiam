@@ -87,7 +87,7 @@ class prediction_MLP(nn.Module):
         return x 
 
 class prediction_RNN(nn.Module):
-    def __init__(self, input_size=2048, hidden_size=2048, nonlin='tanh', norm_type=None):
+    def __init__(self, input_size=2048, hidden_size=512, out_dim=2048, nonlin='tanh', norm_type=None):
         super(prediction_RNN, self).__init__()
         self.hidden_size = hidden_size
         self.norm_type = norm_type
@@ -95,10 +95,15 @@ class prediction_RNN(nn.Module):
         self.i2h = nn.Linear(input_size, hidden_size)
         # 前の隠れ状態h_{t-1}を現在の隠れ状態h_tに変換するための重み
         self.h2h = nn.Linear(hidden_size, hidden_size)
+        self.output_layer = nn.Linear(hidden_size, out_dim)
+
+        # 活性化関数の選択
         if nonlin == 'tanh':
             self.activation = torch.tanh
         elif nonlin == 'relu':
             self.activation = torch.relu
+
+        # Normalizationの選択
         if norm_type == 'layernorm':
             self.normalization = nn.LayerNorm(hidden_size)
         
@@ -108,7 +113,8 @@ class prediction_RNN(nn.Module):
         if self.norm_type is not None:
             combined = self.normalization(combined)
         self.hidden = self.activation(combined)
-        return self.hidden
+        x = self.output_layer(self.hidden)
+        return x
 
     def init_hidden(self, device):
         # 隠れ状態の初期化
@@ -151,27 +157,29 @@ class prediction_LSTM(nn.Module):
         self.hidden = torch.zeros(1, self.hidden_size).to(device)
         self.cell = torch.zeros(1, self.hidden_size).to(device)
 
-class SymHipoSiam(nn.Module):
-    def __init__(self, backbone=resnet50(), angle=10, rotate_times = 10, rnn_nonlin = 'tanh', remove_rnn = False, use_aug = False, rnn_type = 'rnn', rnn_norm = None, random_rotation = False):
+class HippoSiam(nn.Module):
+    def __init__(self, backbone=resnet50(), angle=10, rotate_times = 10, rnn_nonlin = 'tanh', use_aug = False, rnn_type = 'rnn', rnn_norm = None, random_rotation = False, asym_loss = False):
         super().__init__()
         self.angle = angle
         self.rotate_times = rotate_times
         self.backbone = backbone
         self.projector = projection_MLP(backbone.output_dim)
-        self.remove_rnn = remove_rnn
+        self.rnn_type = rnn_type
         self.use_aug = use_aug
         self.random_rotation = random_rotation
+        self.sym_loss = not asym_loss
 
         self.encoder = nn.Sequential( # f encoder
             self.backbone,
             self.projector
         )
-        self.predictor = prediction_MLP()
 
-        if rnn_type == 'rnn':
-            self.rnn_predictor = prediction_RNN(nonlin=rnn_nonlin, norm_type = rnn_norm)
+        if rnn_type == 'None':
+            self.predictor = prediction_MLP()
+        elif rnn_type == 'rnn':
+            self.predictor = prediction_RNN(nonlin=rnn_nonlin, norm_type = rnn_norm)
         elif rnn_type == 'lstm':
-            self.rnn_predictor = prediction_LSTM()
+            self.predictor = prediction_LSTM()
     
     def forward(self, x1, x2):
         f, h = self.encoder, self.predictor
@@ -190,28 +198,30 @@ class SymHipoSiam(nn.Module):
             z1, z2 = f(x1), f(x1)
             xt1 = x1.clone()
             xt2 = x1.clone()
-        self.rnn_predictor.init_hidden(device = x1.device)
+
+        if self.rnn_type != 'None':
+            self.rnn_predictor.init_hidden(device = x1.device)
 
         # 回転なしで1回目
-        if not self.remove_rnn:
-            p1, p2 = h(self.rnn_predictor(z1)),  h(self.rnn_predictor(z2))
+        p1, p2 = h(z1), h(z2)
+        if self.sym_loss:
+            total_loss = D(p1, z2) / 2 + D(p2, z1) / 2
         else:
-            p1, p2 = h(z1), h(z2)
-        total_loss = D(p1, z2) / 2 + D(p2, z1) / 2
+            total_loss = D(p1, z2) / 2 
 
         for i in range(self.rotate_times):
             xt1 = TF.rotate(xt1, rotate_angle)
             xt2 = TF.rotate(xt2, rotate_angle)
             zt1, zt2 = f(xt1), f(xt2)
-            if not self.remove_rnn:
-                p1, p2 = h(self.rnn_predictor(z1)),  h(self.rnn_predictor(z2))
+            p1, p2 = h(z1), h(z2)
+            if self.sym_loss:
+                total_loss += D(p1, zt2) / 2 + D(p2, zt1) / 2
             else:
-                p1, p2 = h(z1), h(z2)
-            total_loss += D(p1, zt2) / 2 + D(p2, zt1) / 2
+                total_loss += D(p1, zt2) / 2
         return {'loss': total_loss / (self.rotate_times+1)}
 
 if __name__ == "__main__":
-    model = SymHipoSiam()
+    model = HippoSiam()
     x1 = torch.randn((2, 3, 224, 224))
     x2 = torch.randn_like(x1)
 

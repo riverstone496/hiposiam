@@ -93,11 +93,10 @@ def get_args():
     parser.add_argument('--knn_k', type=int, default=200)
 
     parser.add_argument('--rnn_nonlin', type=str, default='tanh')
-    parser.add_argument('--rnn_type', type=str, default='rnn')
+    parser.add_argument('--rnn_type', type=str, default=None)
     parser.add_argument('--rnn_norm', type=str, default=None)
-    
-    parser.add_argument('--remove_rnn', action='store_true', default=False)
     parser.add_argument('--use_aug', action='store_true', default=False)
+    parser.add_argument('--asym_loss', action='store_true', default=False)
 
     parser.add_argument('--angle', type=float, default=10)
     parser.add_argument('--rotate_times', type=int, default=10)
@@ -117,6 +116,8 @@ def get_args():
     #     for key, value in Namespace(yaml.load(f, Loader=yaml.FullLoader)).__dict__.items():
     #         vars(args)[key] = value
     if args.rnn_norm == 'None':
+        args.rnn_norm = None
+    if args.rnn_type == 'None':
         args.rnn_norm = None
     if args.debug:
         args.train_batch_size = 2
