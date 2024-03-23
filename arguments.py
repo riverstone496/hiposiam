@@ -99,6 +99,7 @@ def get_args():
 
     parser.add_argument('--angle', type=float, default=10)
     parser.add_argument('--rotate_times', type=int, default=10)
+    parser.add_argument('--random_rotation', action='store_true', default=False)
 
     parser.add_argument('--seed', type=int, default=None)
 

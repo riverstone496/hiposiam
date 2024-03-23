@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F 
 from torchvision.models import resnet50
 from torchvision.transforms import functional as TF
+import random
 
 def D(p, z, version='simplified'): # negative cosine similarity
     if version == 'original':
@@ -147,7 +148,7 @@ class prediction_LSTM(nn.Module):
         self.cell = torch.zeros(1, self.hidden_size).to(device)
 
 class HipoSiam(nn.Module):
-    def __init__(self, backbone=resnet50(), angle=10, rotate_times = 10, rnn_nonlin = 'tanh', remove_rnn = False, use_aug = False, rnn_type = 'rnn'):
+    def __init__(self, backbone=resnet50(), angle=10, rotate_times = 10, rnn_nonlin = 'tanh', remove_rnn = False, use_aug = False, rnn_type = 'rnn', random_rotation = False):
         super().__init__()
         self.angle = angle
         self.rotate_times = rotate_times
@@ -155,6 +156,7 @@ class HipoSiam(nn.Module):
         self.projector = projection_MLP(backbone.output_dim)
         self.remove_rnn = remove_rnn
         self.use_aug = use_aug
+        self.random_rotation = random_rotation
 
         self.encoder = nn.Sequential( # f encoder
             self.backbone,
@@ -168,6 +170,12 @@ class HipoSiam(nn.Module):
             self.rnn_predictor = prediction_LSTM()
     
     def forward(self, x1, x2):
+        # 角度の決定
+        if self.random_rotation:
+            rotate_angle = random.randint(-self.angle, self.angle)
+        else:
+            rotate_angle = self.angle
+
         total_loss = 0
         f, h = self.encoder, self.predictor
         z1 = f(x1)
@@ -178,7 +186,7 @@ class HipoSiam(nn.Module):
             xt = x1.clone()
         self.rnn_predictor.init_hidden(device = x1.device)
         for i in range(self.rotate_times):
-            xt = TF.rotate(xt, self.angle)
+            xt = TF.rotate(xt, rotate_angle)
             z2 = f(xt)
             if not self.remove_rnn:
                 p1 = h(self.rnn_predictor(z1))
