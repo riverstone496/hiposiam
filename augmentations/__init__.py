@@ -6,7 +6,7 @@ def get_aug(name='simsiam', image_size=224, train=True, train_classifier=None):
     if train==True:
         if name == 'simsiam':
             augmentation = SimSiamTransform(image_size)
-        elif name == 'hipposiam':
+        elif name == 'hipposiam' or name == 'rnnsiam':
             augmentation = SimSiamTransform(image_size)
         elif name == 'byol':
             augmentation = BYOL_transform(image_size)

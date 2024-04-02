@@ -2,6 +2,7 @@ from .simsiam import SimSiam
 from .byol import BYOL
 from .simclr import SimCLR
 from .hipposiam import HippoSiam
+from .rnnsiam import RnnSiam
 from torchvision.models import resnet50, resnet18
 import torch
 from .backbones import resnet18_cifar_variant1, resnet18_cifar_variant2
@@ -23,6 +24,10 @@ def get_model(args):
             model.projector.set_layers(args.proj_layers)
     elif args.model == 'hipposiam':
         model =  HippoSiam(get_backbone(args.backbone), angle=args.angle, rotate_times = args.rotate_times, rnn_nonlin=args.rnn_nonlin, use_aug = args.use_aug, rnn_type=args.rnn_type, random_rotation=args.random_rotation, rnn_norm=args.rnn_norm, asym_loss = args.asym_loss)
+        if args.proj_layers is not None:
+            model.projector.set_layers(args.proj_layers)
+    elif args.model == 'rnnsiam':
+        model =  RnnSiam(get_backbone(args.backbone), angle=args.angle, rotate_times = args.rotate_times, use_aug = args.use_aug, random_rotation=args.random_rotation, asym_loss = args.asym_loss)
         if args.proj_layers is not None:
             model.projector.set_layers(args.proj_layers)
     elif args.model == 'byol':
