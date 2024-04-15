@@ -186,7 +186,7 @@ class prediction_LSTM(nn.Module):
         self.cell = torch.zeros(1, self.hidden_size).to(device)
 
 class RnnSiam(nn.Module):
-    def __init__(self, backbone=resnet50(), angle=10, rotate_times = 10, rnn_nonlin = 'tanh', use_aug = False, random_rotation = None, asym_loss = False, rnn_lambda = 0):
+    def __init__(self, backbone=resnet50(), angle=10, rotate_times = 10, rnn_nonlin = 'tanh', use_aug = False, rnn_norm=None, random_rotation = None, asym_loss = False, rnn_lambda = 0, time_simloss = False):
         super().__init__()
         self.angle = angle
         self.rotate_times = rotate_times
@@ -197,6 +197,7 @@ class RnnSiam(nn.Module):
         self.sym_loss = not asym_loss
         self.rnn_lambda = rnn_lambda
         self.input_size = 3 * 32 * 32
+        self.time_simloss = time_simloss
 
         self.encoder = nn.Sequential( # f encoder
             self.backbone,
@@ -204,7 +205,7 @@ class RnnSiam(nn.Module):
         )
 
         self.predictor = prediction_MLP()
-        self.rnn_predictor = prediction_RNN(out_dim = self.input_size)
+        self.rnn_predictor = prediction_RNN(out_dim = self.input_size, nonlin=rnn_nonlin, norm_type = rnn_norm)
     
     def forward(self, x1, x2):
         f, h = self.encoder, self.predictor
@@ -240,14 +241,16 @@ class RnnSiam(nn.Module):
             xt2 = TF.rotate(xt2, rotate_angle)
             zt1, zt2 = f(xt1), f(xt2)
             p1, p2 = h(z1), h(z2)
-            if self.sym_loss:
-                total_loss += D(p1, zt2) / 2 + D(p2, zt1) / 2
-            else:
-                total_loss += D(p1, zt2) 
+            if self.time_simloss:
+                if self.sym_loss:
+                    total_loss += D(p1, zt2) / 2 + D(p2, zt1) / 2
+                else:
+                    total_loss += D(p1, zt2) 
             
             criterion = nn.MSELoss()
             img_predict_1 = self.rnn_predictor(p1)
             img_predict_2 = self.rnn_predictor(p2)
+            
             if self.sym_loss:
                 total_loss += self.rnn_lambda * (criterion(img_predict_1, xt2.reshape(-1, self.input_size)) / 2 + criterion(img_predict_2, xt1.reshape(-1, self.input_size)) / 2)
             else:

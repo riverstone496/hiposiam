@@ -27,7 +27,7 @@ def get_model(args):
         if args.proj_layers is not None:
             model.projector.set_layers(args.proj_layers)
     elif args.model == 'rnnsiam':
-        model =  RnnSiam(get_backbone(args.backbone), angle=args.angle, rotate_times = args.rotate_times, use_aug = args.use_aug, random_rotation=args.random_rotation, asym_loss = args.asym_loss)
+        model =  RnnSiam(get_backbone(args.backbone), angle=args.angle, rotate_times = args.rotate_times, use_aug = args.use_aug, random_rotation=args.random_rotation, asym_loss = args.asym_loss, rnn_norm =args.rnn_norm, rnn_lambda=args.rnn_lambda, time_simloss = args.time_simloss)
         if args.proj_layers is not None:
             model.projector.set_layers(args.proj_layers)
     elif args.model == 'byol':
